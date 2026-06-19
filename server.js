@@ -412,11 +412,17 @@ app.post('/api/payment/verify', async (req, res) => {
 });
 
 // ===== START =====
-app.listen(PORT, () => {
-  console.log('');
-  console.log('🧠 LifeCoach AI Server Started!');
-  console.log(`🌐 Visit: http://localhost:${PORT}`);
-  console.log(`🔑 Groq: ${process.env.GROQ_API_KEY ? '✅' : '❌'}`);
-  console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
-  console.log('');
-});
+// ONLY run app.listen locally. Vercel will handle serverless execution itself in production.
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log('');
+    console.log('🧠 LifeCoach AI Server Started!');
+    console.log(`🌐 Visit: http://localhost:${PORT}`);
+    console.log(`🔑 Groq: ${process.env.GROQ_API_KEY ? '✅' : '❌'}`);
+    console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
+    console.log('');
+  });
+}
+
+// CRITICAL: Export the app module so Vercel can map your /api routes serverlessly!
+module.exports = app;
