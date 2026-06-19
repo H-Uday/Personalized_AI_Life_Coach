@@ -426,3 +426,13 @@ if (process.env.NODE_ENV !== 'production') {
 
 // CRITICAL: Export the app module so Vercel can map your /api routes serverlessly!
 module.exports = app;
+
+// Safely extract credentials
+const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'placeholder';
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  console.error("⚠️ VERCEL ENVIRONMENT VARIABLES ARE MISSING OR NOT PROPAGATED YET!");
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
