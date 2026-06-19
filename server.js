@@ -26,7 +26,7 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+// app.use(express.static('.'));
 
 // ===== HELPER =====
 async function getUser(req) {
