@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up — LifeCoach AI</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    .auth-page { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(168,85,247,0.12),transparent); }
+    .auth-container { display:flex; width:100%; max-width:960px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:28px; overflow:hidden; }
+    .auth-left { flex:1; background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(99,102,241,0.1)); border-right:1px solid rgba(255,255,255,0.06); padding:48px 40px; display:flex; flex-direction:column; justify-content:space-between; }
+    .auth-logo { display:flex; align-items:center; gap:10px; text-decoration:none; margin-bottom:32px; }
+    .auth-logo-icon { font-size:28px; }
+    .auth-logo-text { font-size:20px; font-weight:800; color:#fff; }
+    .auth-logo-ai { color:#a855f7; }
+    .auth-left h2 { font-size:26px; font-weight:800; margin-bottom:12px; line-height:1.3; }
+    .auth-left p { color:rgba(255,255,255,0.55); font-size:15px; line-height:1.7; margin-bottom:28px; }
+    .auth-features { display:flex; flex-direction:column; gap:16px; }
+    .auth-feature { display:flex; align-items:center; gap:14px; }
+    .auth-feature-icon { width:36px; height:36px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.25); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .auth-feature-text strong { display:block; font-size:14px; font-weight:600; }
+    .auth-feature-text span { font-size:13px; color:rgba(255,255,255,0.45); }
+    .auth-right { flex:1; padding:48px 40px; display:flex; flex-direction:column; justify-content:center; }
+    .auth-right h3 { font-size:26px; font-weight:800; margin-bottom:6px; }
+    .auth-sub { color:rgba(255,255,255,0.5); font-size:15px; margin-bottom:28px; }
+    .auth-sub a { color:#a855f7; text-decoration:none; font-weight:600; }
+    .form-group { margin-bottom:16px; }
+    .form-row { display:flex; gap:14px; }
+    .form-row .form-group { flex:1; }
+    .form-group label { display:block; font-size:13px; font-weight:600; color:rgba(255,255,255,0.7); margin-bottom:7px; }
+    .form-group input { width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:13px 16px; color:#fff; font-size:15px; font-family:'Inter',sans-serif; transition:all 0.2s; outline:none; }
+    .form-group input:focus { border-color:rgba(168,85,247,0.5); background:rgba(168,85,247,0.05); box-shadow:0 0 0 3px rgba(168,85,247,0.1); }
+    .form-group input::placeholder { color:rgba(255,255,255,0.25); }
+    .password-wrapper { position:relative; }
+    .password-toggle { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(255,255,255,0.35); cursor:pointer; font-size:15px; }
+    .password-toggle:hover { color:rgba(255,255,255,0.7); }
+    .terms { display:flex; align-items:flex-start; gap:10px; margin-bottom:20px; font-size:13px; color:rgba(255,255,255,0.5); cursor:pointer; }
+    .terms input[type="checkbox"] { margin-top:2px; accent-color:#a855f7; width:16px; height:16px; flex-shrink:0; }
+    .terms a { color:#a855f7; text-decoration:none; }
+    .btn-auth { width:100%; background:linear-gradient(135deg,#a855f7,#6366f1); color:#fff; border:none; padding:15px; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 0 30px rgba(168,85,247,0.25); }
+    .btn-auth:hover { opacity:0.92; transform:translateY(-1px); }
+    .btn-auth:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+    .error-msg { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); color:#f87171; padding:12px 16px; border-radius:10px; font-size:13px; margin-bottom:14px; display:none; }
+    .success-msg { background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.25); color:#4ade80; padding:12px 16px; border-radius:10px; font-size:13px; margin-bottom:14px; display:none; text-align:center; }
+    @media(max-width:700px){ .auth-left{display:none;} .auth-right{padding:36px 24px;} .form-row{flex-direction:column;gap:0;} }
+  </style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-container">
+    <div class="auth-left">
+      <div>
+        <a href="index.html" class="auth-logo">
+          <span class="auth-logo-icon">🧠</span>
+          <span class="auth-logo-text">LifeCoach <span class="auth-logo-ai">AI</span></span>
+        </a>
+        <h2>Start Your AI Coaching Journey Today</h2>
+        <p>Join thousands of people already transforming their lives with personalized AI coaching.</p>
+        <div class="auth-features">
+          <div class="auth-feature"><div class="auth-feature-icon">🎯</div><div class="auth-feature-text"><strong>Smart Goal Tracking</strong><span>AI breaks goals into weekly steps</span></div></div>
+          <div class="auth-feature"><div class="auth-feature-icon">✅</div><div class="auth-feature-text"><strong>Habit Intelligence</strong><span>AI spots your patterns automatically</span></div></div>
+          <div class="auth-feature"><div class="auth-feature-icon">🧠</div><div class="auth-feature-text"><strong>AI Memory Coach</strong><span>Remembers everything about you</span></div></div>
+          <div class="auth-feature"><div class="auth-feature-icon">📊</div><div class="auth-feature-text"><strong>Weekly Life Review</strong><span>Full AI report every Sunday</span></div></div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:rgba(255,255,255,0.25);margin-top:32px;">Free forever. No credit card needed.</p>
+    </div>
+    <div class="auth-right">
+      <h3>Create Your Account</h3>
+      <p class="auth-sub">Already have an account? <a href="login.html">Log in</a></p>
+      <div class="error-msg" id="errorMsg"></div>
+      <div class="success-msg" id="successMsg"></div>
+      <div class="form-row">
+        <div class="form-group"><label>First Name</label><input type="text" id="firstName" placeholder="Rahul"/></div>
+        <div class="form-group"><label>Last Name</label><input type="text" id="lastName" placeholder="Kumar"/></div>
+      </div>
+      <div class="form-group"><label>Email Address</label><input type="email" id="email" placeholder="rahul@gmail.com"/></div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="password" placeholder="Min 8 characters"/>
+          <button class="password-toggle" onclick="togglePwd('password',this)" type="button"><i class="fas fa-eye"></i></button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="confirmPassword" placeholder="Repeat your password"/>
+          <button class="password-toggle" onclick="togglePwd('confirmPassword',this)" type="button"><i class="fas fa-eye"></i></button>
+        </div>
+      </div>
+      <label class="terms"><input type="checkbox" id="termsCheck"/> I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+      <button class="btn-auth" id="signupBtn" onclick="handleSignup()"><i class="fas fa-bolt"></i> Create Free Account</button>
+    </div>
+  </div>
+</div>
+<script>
+  // ===== PASSWORD TOGGLE EYE VISIBILITY =====
+  function togglePwd(id, btn) {
+    const input = document.getElementById(id);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'fas fa-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'fas fa-eye';
+    }
+  }
+
+  // ===== ALERT MESSAGING HELPERS =====
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg; 
+    el.style.display = 'block';
+    document.getElementById('successMsg').style.display = 'none';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('successMsg');
+    el.textContent = msg; 
+    el.style.display = 'block';
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+
+  // ===== SIGNUP CLIENT HANDLING =====
+  async function handleSignup() {
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const termsCheck = document.getElementById('termsCheck').checked;
+
+    // 1. Validations
+    if (!firstName || !lastName) {
+      return showError('Please fill in both your First Name and Last Name.');
+    }
+    if (!email || !email.includes('@')) {
+      return showError('Please provide a valid email address.');
+    }
+    if (password.length < 8) {
+      return showError('Password must be at least 8 characters long.');
+    }
+    if (password !== confirmPassword) {
+      return showError('Passwords do not match. Please verify.');
+    }
+    if (!termsCheck) {
+      return showError('You must agree to the Terms of Service and Privacy Policy to proceed.');
+    }
+
+    // 2. UI Submitting State
+    const btn = document.getElementById('signupBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+
+    try {
+      // 3. Match the exact payload keys your new server.js expects!
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          password
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        showError(data.error || 'Registration failed. That email may already be in use.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-bolt"></i> Create Free Account';
+        return;
+      }
+
+      // 4. Save session and redirect securely using relative paths
+      if (data.session && data.user) {
+        localStorage.clear();
+        localStorage.setItem('lc_session', JSON.stringify(data.session));
+        localStorage.setItem('lc_user', JSON.stringify(data.user));
+        
+        showSuccess('🎉 Account created successfully! Preparing your dashboard...');
+        setTimeout(() => {
+          window.location.replace('dashboard.html');
+        }, 1500);
+      } else {
+        showSuccess('✉️ Signup successful! Please check your email inbox to verify your account, then log in.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> Check Email';
+      }
+
+    } catch (err) {
+      showError('Connection error. Verify that your backend server is running.');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-bolt"></i> Create Free Account';
+    }
+  }
+</script>
+</body>
+</html>

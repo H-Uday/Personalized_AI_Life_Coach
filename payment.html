@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upgrade to Pro — LifeCoach AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:#0a0a0f; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .page { max-width:900px; width:100%; }
+
+    /* HEADER */
+    .page-header { text-align:center; margin-bottom:48px; }
+    .back-btn { display:inline-flex; align-items:center; gap:8px; color:rgba(255,255,255,0.5); text-decoration:none; font-size:14px; margin-bottom:32px; transition:color 0.2s; }
+    .back-btn:hover { color:#fff; }
+    .trial-badge { display:inline-block; background:rgba(251,146,60,0.1); border:1px solid rgba(251,146,60,0.25); color:#fb923c; padding:8px 20px; border-radius:50px; font-size:13px; font-weight:600; margin-bottom:20px; }
+    .page-header h1 { font-size:40px; font-weight:900; margin-bottom:12px; letter-spacing:-1px; }
+    .gradient-text { background:linear-gradient(135deg,#a855f7,#6366f1); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .page-header p { color:rgba(255,255,255,0.55); font-size:17px; }
+
+    /* PLANS */
+    .plans-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:40px; }
+    .plan-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:24px; padding:32px 24px; position:relative; transition:all 0.3s; }
+    .plan-card:hover { border-color:rgba(168,85,247,0.3); transform:translateY(-4px); }
+    .plan-card.featured { background:rgba(168,85,247,0.08); border-color:rgba(168,85,247,0.4); transform:scale(1.03); }
+    .plan-card.featured:hover { transform:scale(1.03) translateY(-4px); }
+    .popular-tag { position:absolute; top:-14px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,#a855f7,#6366f1); color:#fff; padding:6px 20px; border-radius:50px; font-size:12px; font-weight:700; white-space:nowrap; }
+    .plan-name { font-size:13px; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+    .plan-price { font-size:42px; font-weight:900; margin-bottom:6px; }
+    .plan-price span { font-size:16px; color:rgba(255,255,255,0.4); font-weight:400; }
+    .plan-save { font-size:12px; color:#4ade80; font-weight:600; margin-bottom:24px; }
+    .plan-features { list-style:none; display:flex; flex-direction:column; gap:12px; margin-bottom:28px; }
+    .plan-features li { display:flex; align-items:center; gap:10px; font-size:14px; color:rgba(255,255,255,0.75); }
+    .plan-features .fa-check { color:#a855f7; font-size:12px; }
+    .plan-features .fa-times { color:rgba(255,255,255,0.2); font-size:12px; }
+    .btn-pay { width:100%; padding:14px; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; border:none; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn-pay-pro { background:linear-gradient(135deg,#a855f7,#6366f1); color:#fff; box-shadow:0 0 30px rgba(168,85,247,0.3); }
+    .btn-pay-pro:hover { opacity:0.9; transform:translateY(-2px); }
+    .btn-pay-outline { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12) !important; color:#fff; }
+    .btn-pay-outline:hover { background:rgba(255,255,255,0.1); }
+    .btn-free { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08) !important; color:rgba(255,255,255,0.5); cursor:default; }
+
+    /* FEATURES */
+    .features-section { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:24px; padding:32px; margin-bottom:32px; }
+    .features-section h3 { font-size:20px; font-weight:800; margin-bottom:24px; text-align:center; }
+    .features-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .feature-item { display:flex; align-items:flex-start; gap:12px; padding:16px; border-radius:14px; background:rgba(168,85,247,0.05); border:1px solid rgba(168,85,247,0.1); }
+    .feature-item-icon { font-size:22px; flex-shrink:0; }
+    .feature-item strong { display:block; font-size:14px; font-weight:700; margin-bottom:4px; }
+    .feature-item span { font-size:13px; color:rgba(255,255,255,0.5); line-height:1.5; }
+
+    /* TRUST */
+    .trust-row { display:flex; justify-content:center; gap:32px; flex-wrap:wrap; }
+    .trust-item { display:flex; align-items:center; gap:8px; font-size:13px; color:rgba(255,255,255,0.45); }
+    .trust-item i { color:#a855f7; }
+
+    /* SUCCESS */
+    .success-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .success-overlay.show { display:flex; }
+    .success-card { background:#13131f; border:1px solid rgba(34,197,94,0.3); border-radius:28px; padding:48px; text-align:center; max-width:440px; }
+    .success-icon { font-size:64px; margin-bottom:20px; }
+    .success-card h2 { font-size:28px; font-weight:900; margin-bottom:12px; }
+    .success-card p { color:rgba(255,255,255,0.6); font-size:16px; margin-bottom:28px; line-height:1.6; }
+    .btn-dashboard { display:inline-block; background:linear-gradient(135deg,#a855f7,#6366f1); color:#fff; text-decoration:none; padding:14px 32px; border-radius:12px; font-size:16px; font-weight:700; transition:all 0.2s; }
+    .btn-dashboard:hover { opacity:0.9; }
+
+    /* TRIAL BANNER */
+    .trial-banner { background:linear-gradient(135deg,rgba(251,146,60,0.1),rgba(239,68,68,0.1)); border:1px solid rgba(251,146,60,0.25); border-radius:16px; padding:20px 24px; margin-bottom:32px; display:flex; align-items:center; gap:16px; }
+    .trial-banner-icon { font-size:32px; flex-shrink:0; }
+    .trial-banner h4 { font-size:16px; font-weight:700; margin-bottom:4px; color:#fb923c; }
+    .trial-banner p { font-size:14px; color:rgba(255,255,255,0.6); }
+
+    @media(max-width:700px){ .plans-grid{grid-template-columns:1fr;} .plan-card.featured{transform:scale(1);} .features-grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- BACK -->
+    <a href="dashboard.html" class="back-btn">
+      <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+
+    <!-- TRIAL BANNER -->
+    <div class="trial-banner" id="trialBanner">
+      <div class="trial-banner-icon">⏰</div>
+      <div>
+        <h4>Your Free Trial — <span id="daysLeftText">Loading...</span></h4>
+        <p>Upgrade now to keep full access to all AI coaching features after your trial ends.</p>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="page-header">
+      <h1>Unlock Your Full <span class="gradient-text">Life Potential</span></h1>
+      <p>Choose the plan that works best for you. Cancel anytime.</p>
+    </div>
+
+    <!-- PLANS -->
+    <div class="plans-grid">
+
+      <!-- FREE -->
+      <div class="plan-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">₹0 <span>/month</span></div>
+        <div class="plan-save">&nbsp;</div>
+        <ul class="plan-features">
+          <li><i class="fas fa-check"></i> 5 AI chats per day</li>
+          <li><i class="fas fa-check"></i> Track up to 3 habits</li>
+          <li><i class="fas fa-check"></i> Basic journal</li>
+          <li><i class="fas fa-check"></i> Set 2 goals max</li>
+          <li><i class="fas fa-times"></i> Weekly AI review</li>
+          <li><i class="fas fa-times"></i> AI memory & patterns</li>
+        </ul>
+        <button class="btn-pay btn-free" disabled>Current Free Plan</button>
+      </div>
+
+      <!-- PRO MONTHLY -->
+      <div class="plan-card featured">
+        <div class="popular-tag">⭐ Most Popular</div>
+        <div class="plan-name">Pro Monthly</div>
+        <div class="plan-price">₹299 <span>/month</span></div>
+        <div class="plan-save">Start with 7-day free trial</div>
+        <ul class="plan-features">
+          <li><i class="fas fa-check"></i> Unlimited AI coaching</li>
+          <li><i class="fas fa-check"></i> Unlimited habits & goals</li>
+          <li><i class="fas fa-check"></i> Full smart journal</li>
+          <li><i class="fas fa-check"></i> Weekly AI life review</li>
+          <li><i class="fas fa-check"></i> Mood trend analytics</li>
+          <li><i class="fas fa-check"></i> Full AI memory</li>
+        </ul>
+        <button class="btn-pay btn-pay-pro" onclick="startPayment('monthly')">
+          <i class="fas fa-bolt"></i> Upgrade — ₹299/month
+        </button>
+      </div>
+
+      <!-- PRO YEARLY -->
+      <div class="plan-card">
+        <div class="plan-name">Pro Yearly</div>
+        <div class="plan-price">₹2,499 <span>/year</span></div>
+        <div class="plan-save">💰 Save ₹1,089 — 3 months free!</div>
+        <ul class="plan-features">
+          <li><i class="fas fa-check"></i> Everything in Pro</li>
+          <li><i class="fas fa-check"></i> Priority AI responses</li>
+          <li><i class="fas fa-check"></i> Export all your data</li>
+          <li><i class="fas fa-check"></i> Early access to features</li>
+          <li><i class="fas fa-check"></i> Dedicated AI persona</li>
+          <li><i class="fas fa-check"></i> Priority support</li>
+        </ul>
+        <button class="btn-pay btn-pay-outline" onclick="startPayment('yearly')">
+          <i class="fas fa-star"></i> Get Yearly — ₹2,499
+        </button>
+      </div>
+
+    </div>
+
+    <!-- FEATURES -->
+    <div class="features-section">
+      <h3>✨ Everything Included In Pro</h3>
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-item-icon">🧠</div>
+          <div><strong>AI That Remembers You</strong><span>Unlike ChatGPT, our AI remembers your goals, habits, and patterns across every session.</span></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-item-icon">📊</div>
+          <div><strong>Weekly Life Review</strong><span>Every Sunday, get a complete AI-generated report of your week with actionable insights.</span></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-item-icon">🎯</div>
+          <div><strong>Unlimited Goals</strong><span>Set as many goals as you want with AI-generated step-by-step action plans for each.</span></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-item-icon">✅</div>
+          <div><strong>Habit Intelligence</strong><span>AI spots your patterns and tells you exactly which habits have the biggest impact on your mood.</span></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-item-icon">📓</div>
+          <div><strong>Smart Journal</strong><span>Write freely and get personalized AI responses that connect your thoughts to your goals.</span></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-item-icon">💭</div>
+          <div><strong>Daily AI Check-in</strong><span>Track your mood daily with AI that detects patterns and warns you about early burnout signs.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRUST -->
+    <div class="trust-row">
+      <div class="trust-item"><i class="fas fa-lock"></i> Secure Payment by Razorpay</div>
+      <div class="trust-item"><i class="fas fa-undo"></i> Cancel Anytime</div>
+      <div class="trust-item"><i class="fas fa-shield-alt"></i> Your Data Is Private</div>
+      <div class="trust-item"><i class="fas fa-headset"></i> 24/7 Support</div>
+    </div>
+
+  </div>
+
+  <!-- SUCCESS OVERLAY -->
+  <div class="success-overlay" id="successOverlay">
+    <div class="success-card">
+      <div class="success-icon">🎉</div>
+      <h2>You're Now Pro!</h2>
+      <p>Welcome to LifeCoach AI Pro! All features are now unlocked. Your AI coach is ready to help you transform your life.</p>
+      <a href="dashboard.html" class="btn-dashboard">
+        <i class="fas fa-rocket"></i> Go To Dashboard
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // ===== CHECK SESSION =====
+    const sessionData = localStorage.getItem('lc_session');
+    const userData = localStorage.getItem('lc_user');
+    if (!sessionData || !userData) {
+      window.location.replace('/login.html');
+    }
+
+    let currentSession = JSON.parse(sessionData || '{}');
+    let currentUser = JSON.parse(userData || '{}');
+
+    function authHeader() {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentSession?.access_token}`
+      };
+    }
+
+    // ===== LOAD TRIAL STATUS =====
+    async function loadTrialStatus() {
+      try {
+        const res = await fetch('/api/trial-status', { headers: authHeader() });
+        const data = await res.json();
+
+        if (data.plan === 'pro') {
+          document.getElementById('trialBanner').innerHTML = `
+            <div class="trial-banner-icon">✅</div>
+            <div><h4 style="color:#4ade80;">You are already on Pro!</h4><p>All features are unlocked. Enjoy your AI coaching experience.</p></div>
+          `;
+          return;
+        }
+
+        const daysLeft = data.daysLeft || 0;
+        let msg = '';
+        if (daysLeft <= 0) {
+          msg = '⚠️ Trial Expired — Upgrade Now To Continue';
+        } else if (daysLeft === 1) {
+          msg = '🚨 Last Day of Trial!';
+        } else {
+          msg = `${daysLeft} Days Left In Your Free Trial`;
+        }
+        document.getElementById('daysLeftText').textContent = msg;
+
+      } catch(e) {
+        document.getElementById('daysLeftText').textContent = 'Check your plan status';
+      }
+    }
+
+    loadTrialStatus();
+
+    // ===== START PAYMENT =====
+    async function startPayment(plan) {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+  try {
+    const res = await fetch('/api/payment/create-order', {
+      method: 'POST',
+      headers: authHeader(),
+      body: JSON.stringify({ plan })
+    });
+
+    const orderData = await res.json();
+
+    if (res.status === 503 || !orderData.success) {
+      btn.disabled = false;
+      btn.innerHTML = plan === 'monthly'
+        ? '<i class="fas fa-bolt"></i> Upgrade — ₹299/month'
+        : '<i class="fas fa-star"></i> Get Yearly — ₹2,499';
+      showComingSoonPopup();
+      return;
+    }
+
+    // Razorpay not configured yet
+    if (res.status === 503 || (orderData.error && orderData.error.includes('not configured'))) {
+      btn.disabled = false;
+      btn.innerHTML = plan === 'monthly'
+        ? '<i class="fas fa-bolt"></i> Upgrade — ₹299/month'
+        : '<i class="fas fa-star"></i> Get Yearly — ₹2,499';
+
+      // Show nice popup
+      showComingSoonPopup();
+      return;
+    }
+
+    if (!orderData.success) {
+      alert('Could not create order. Please try again.');
+      btn.disabled = false;
+      btn.innerHTML = plan === 'monthly'
+        ? '<i class="fas fa-bolt"></i> Upgrade — ₹299/month'
+        : '<i class="fas fa-star"></i> Get Yearly — ₹2,499';
+      return;
+    }
+
+    // Open Razorpay checkout
+    const options = {
+      key: orderData.key_id,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: 'LifeCoach AI',
+      description: plan === 'monthly' ? 'Pro Monthly Plan' : 'Pro Yearly Plan',
+      order_id: orderData.order_id,
+      prefill: {
+        email: currentUser.email,
+        name: currentUser.user_metadata?.full_name || ''
+      },
+      theme: { color: '#a855f7' },
+      handler: async function(response) {
+        const verifyRes = await fetch('/api/payment/verify', {
+          method: 'POST',
+          headers: authHeader(),
+          body: JSON.stringify({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            plan
+          })
+        });
+        const verifyData = await verifyRes.json();
+        if (verifyData.success) {
+          document.getElementById('successOverlay').classList.add('show');
+        } else {
+          alert('Payment verification failed. Please contact support.');
+        }
+      },
+      modal: {
+        ondismiss: function() {
+          btn.disabled = false;
+          btn.innerHTML = plan === 'monthly'
+            ? '<i class="fas fa-bolt"></i> Upgrade — ₹299/month'
+            : '<i class="fas fa-star"></i> Get Yearly — ₹2,499';
+        }
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+
+  } catch(e) {
+    console.error('Payment error:', e);
+    showComingSoonPopup();
+    btn.disabled = false;
+    btn.innerHTML = plan === 'monthly'
+      ? '<i class="fas fa-bolt"></i> Upgrade — ₹299/month'
+      : '<i class="fas fa-star"></i> Get Yearly — ₹2,499';
+  }
+}
+
+// ===== COMING SOON POPUP =====
+function showComingSoonPopup() {
+  const existing = document.getElementById('comingSoonPopup');
+  if (existing) existing.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'comingSoonPopup';
+  popup.style.cssText = `
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.85);
+    backdrop-filter:blur(8px);
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  `;
+  popup.innerHTML = `
+    <div style="
+      background:#13131f;
+      border:1px solid rgba(168,85,247,0.4);
+      border-radius:28px;
+      padding:40px;
+      max-width:420px;
+      width:100%;
+      text-align:center;
+    ">
+      <div style="font-size:56px; margin-bottom:16px;">💳</div>
+      <h2 style="font-size:22px; font-weight:800; margin-bottom:12px; color:#fff;">
+        Payments Coming Very Soon!
+      </h2>
+      <p style="color:rgba(255,255,255,0.6); font-size:15px; line-height:1.7; margin-bottom:12px;">
+        Our payment system is currently being verified by <strong style="color:#a855f7;">Razorpay</strong>.
+      </p>
+      <p style="color:rgba(255,255,255,0.6); font-size:15px; line-height:1.7; margin-bottom:28px;">
+        It will be active within <strong style="color:#4ade80;">1-2 business days</strong>.
+        We will notify you by email as soon as payments go live!
+      </p>
+      <div style="
+        background:rgba(168,85,247,0.08);
+        border:1px solid rgba(168,85,247,0.2);
+        border-radius:14px;
+        padding:16px;
+        margin-bottom:24px;
+      ">
+        <p style="font-size:13px; color:rgba(255,255,255,0.5); margin:0;">
+          🎁 <strong style="color:#c084fc;">Early Bird Offer:</strong>
+          First 100 subscribers get <strong style="color:#4ade80;">50% off</strong> for life!
+          Stay tuned 🚀
+        </p>
+      </div>
+      <button onclick="document.getElementById('comingSoonPopup').remove()" style="
+        width:100%;
+        background:linear-gradient(135deg,#a855f7,#6366f1);
+        border:none;
+        color:#fff;
+        padding:14px;
+        border-radius:12px;
+        font-size:15px;
+        font-weight:700;
+        cursor:pointer;
+        font-family:'Inter',sans-serif;
+      ">
+        Got It! 👍
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+
+  // Close on outside click
+  popup.addEventListener('click', function(e) {
+    if (e.target === popup) popup.remove();
+  });
+}
+  </script>
+</body>
+</html>
