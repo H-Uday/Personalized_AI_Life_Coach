@@ -4,18 +4,9 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
-    {
-      "src": "/favicon.ico",
-      "status": 204,
-      "continue": true
-    },
     {
       "src": "/api/(.*)",
       "dest": "server.js"
