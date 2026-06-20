@@ -6,6 +6,11 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
+console.log('ENV CHECK:');
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Found' : '❌ Missing');
+console.log('SUPABASE_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ Found' : '❌ Missing');
+console.log('GROQ_KEY:', process.env.GROQ_API_KEY ? '✅ Found' : '❌ Missing');
+
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
