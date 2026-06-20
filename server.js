@@ -22,6 +22,12 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY || ''
 );
 
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_ANON_KEY || ''
+);
+console.log('✅ Supabase client created');
+
 // ===== RAZORPAY (OPTIONAL) =====
 let razorpay = null;
 try {
@@ -404,16 +410,13 @@ app.post('/api/payment/verify', async (req, res) => {
 });
 
 // ===== START SERVER =====
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log('');
-    console.log('🧠 LifeCoach AI Server Started!');
-    console.log(`🌐 Visit: http://localhost:${PORT}`);
-    console.log(`🔑 Groq: ${process.env.GROQ_API_KEY ? '✅' : '❌'}`);
-    console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
-    console.log('');
-  });
-}
+app.listen(PORT, () => {
+  console.log('');
+  console.log('🧠 LifeCoach AI Server Started!');
+  console.log(`🌐 Port: ${PORT}`);
+  console.log(`🔑 Groq: ${process.env.GROQ_API_KEY ? '✅' : '❌'}`);
+  console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
+  console.log('');
+});
 
-// ===== EXPORT FOR VERCEL =====
 module.exports = app;
