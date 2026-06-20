@@ -46,7 +46,28 @@ try {
 // ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
+const mime = require('mime-types');
+
+app.use(express.static(__dirname, {
+  setHeaders: function(res, filePath) {
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
+
+app.get('/css/:file', (req, res) => {
+  res.setHeader('Content-Type', 'text/css');
+  res.sendFile(path.join(__dirname, 'css', req.params.file));
+});
+
+app.get('/js/:file', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'js', req.params.file));
+});
 
 // ===== HTML PAGES =====
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
