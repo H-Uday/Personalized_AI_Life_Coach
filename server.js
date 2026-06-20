@@ -1,47 +1,48 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
-let Razorpay;
-try {
-  Razorpay = require('razorpay');
-} catch(e) {
-  console.log('Razorpay module not available');
-}
+const path = require('path');
 const crypto = require('crypto');
+require('dotenv').config();
+
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// const supabase = createClient(
-//   process.env.SUPABASE_URL,
-//   process.env.SUPABASE_ANON_KEY
-// );
+// ===== SUPABASE =====
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_ANON_KEY || ''
+);
 
-// ====== SAFE DATABASE INITIALIZATION ======
-const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'placeholder';
-
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  console.error("⚠️ VERCEL ENVIRONMENT VARIABLES ARE MISSING OR NOT PROPAGATED YET!");
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+// ===== RAZORPAY (OPTIONAL) =====
 let razorpay = null;
-if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
-  razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-  });
-  console.log('💳 Razorpay: ✅ Connected');
-} else {
-  console.log('💳 Razorpay: ⏳ Keys not added yet');
+try {
+  if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    const Razorpay = require('razorpay');
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+    console.log('💳 Razorpay: ✅ Connected');
+  } else {
+    console.log('💳 Razorpay: ⏳ Keys not added yet');
+  }
+} catch(e) {
+  console.log('💳 Razorpay: ⚠️ Module error:', e.message);
 }
 
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+app.use(express.static(__dirname));
+
+// ===== SERVE HTML PAGES =====
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
+app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/payment.html', (req, res) => res.sendFile(path.join(__dirname, 'payment.html')));
 
 // ===== HELPER =====
 async function getUser(req) {
@@ -59,7 +60,7 @@ app.get('/api/test', (req, res) => {
     message: '🧠 LifeCoach AI Server Running!',
     groq: !!process.env.GROQ_API_KEY,
     supabase: !!process.env.SUPABASE_URL,
-    razorpay: !!process.env.RAZORPAY_KEY_ID
+    razorpay: !!razorpay
   });
 });
 
@@ -134,32 +135,17 @@ app.get('/api/chat-limit', async (req, res) => {
 
     const plan = profile?.plan || 'trial';
 
-    // Pro users get unlimited
     if (plan === 'pro') {
-      return res.json({
-        allowed: true,
-        plan: 'pro',
-        chatsUsed: 0,
-        chatsLimit: 999,
-        unlimited: true
-      });
+      return res.json({ allowed: true, plan: 'pro', chatsUsed: 0, chatsLimit: 999, unlimited: true });
     }
 
-    // Check trial expiry
     if (plan === 'trial' && profile?.trial_ends_at) {
       const trialEnd = new Date(profile.trial_ends_at);
-      const now = new Date();
-      if (trialEnd < now) {
-        return res.json({
-          allowed: false,
-          plan: 'expired',
-          reason: 'trial_expired',
-          message: 'Your free trial has ended. Upgrade to Pro!'
-        });
+      if (trialEnd < new Date()) {
+        return res.json({ allowed: false, plan: 'expired', reason: 'trial_expired', message: 'Your free trial has ended. Upgrade to Pro!' });
       }
     }
 
-    // Get today's chat count
     const today = new Date().toISOString().split('T')[0];
     const { data: usage } = await supabase
       .from('chat_usage')
@@ -173,15 +159,11 @@ app.get('/api/chat-limit', async (req, res) => {
     const allowed = chatsUsed < chatsLimit;
 
     res.json({
-      allowed,
-      plan,
-      chatsUsed,
-      chatsLimit,
+      allowed, plan, chatsUsed, chatsLimit,
       chatsLeft: Math.max(0, chatsLimit - chatsUsed),
       unlimited: false,
       message: allowed ? null : 'Daily limit reached! Upgrade to Pro for unlimited chats.'
     });
-
   } catch(e) {
     console.error('Chat limit error:', e.message);
     res.status(500).json({ error: e.message });
@@ -193,25 +175,17 @@ app.post('/api/chat-increment', async (req, res) => {
   try {
     const user = await getUser(req);
     const today = new Date().toISOString().split('T')[0];
-
     const { data: existing } = await supabase
-      .from('chat_usage')
-      .select('id, count')
-      .eq('user_id', user.id)
-      .eq('date', today)
-      .single();
+      .from('chat_usage').select('id, count')
+      .eq('user_id', user.id).eq('date', today).single();
 
     if (existing) {
-      await supabase
-        .from('chat_usage')
-        .update({ count: existing.count + 1 })
-        .eq('id', existing.id);
+      await supabase.from('chat_usage')
+        .update({ count: existing.count + 1 }).eq('id', existing.id);
     } else {
-      await supabase
-        .from('chat_usage')
+      await supabase.from('chat_usage')
         .insert([{ user_id: user.id, date: today, count: 1 }]);
     }
-
     res.json({ success: true });
   } catch(e) {
     console.error('Chat increment error:', e.message);
@@ -310,7 +284,7 @@ app.post('/api/checkin', async (req, res) => {
       });
       const groqData = await groqRes.json();
       ai_response = groqData.choices?.[0]?.message?.content || ai_response;
-    } catch(e) {}
+    } catch(e) { console.error('Groq error:', e.message); }
     const { data, error } = await supabase.from('checkins')
       .insert([{ user_id: user.id, mood, thoughts, focus, ai_response }]).select();
     if (error) return res.status(400).json({ error: error.message });
@@ -342,7 +316,7 @@ app.post('/api/journal', async (req, res) => {
       });
       const groqData = await groqRes.json();
       ai_response = groqData.choices?.[0]?.message?.content || ai_response;
-    } catch(e) {}
+    } catch(e) { console.error('Groq error:', e.message); }
     const { data, error } = await supabase.from('journal_entries')
       .insert([{ user_id: user.id, content, ai_response }]).select();
     if (error) return res.status(400).json({ error: error.message });
@@ -397,9 +371,7 @@ app.post('/api/payment/create-order', async (req, res) => {
       notes: { user_id: user.id, plan }
     });
     res.json({ success: true, order_id: order.id, amount: order.amount, currency: order.currency, key_id: process.env.RAZORPAY_KEY_ID });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== PAYMENT VERIFY =====
@@ -421,13 +393,10 @@ app.post('/api/payment/verify', async (req, res) => {
       .eq('id', user.id);
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true, message: '🎉 Pro plan activated!', plan: 'pro' });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ===== START =====
-// ONLY run app.listen locally. Vercel will handle serverless execution itself in production.
+// ===== START SERVER =====
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log('');
@@ -439,5 +408,5 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// CRITICAL: Export the app module so Vercel can map your /api routes serverlessly!
+// ===== EXPORT FOR VERCEL =====
 module.exports = app;
