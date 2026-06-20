@@ -2,16 +2,31 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
-const Razorpay = require('razorpay');
+let Razorpay;
+try {
+  Razorpay = require('razorpay');
+} catch(e) {
+  console.log('Razorpay module not available');
+}
 const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// const supabase = createClient(
+//   process.env.SUPABASE_URL,
+//   process.env.SUPABASE_ANON_KEY
+// );
+
+// ====== SAFE DATABASE INITIALIZATION ======
+const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'placeholder';
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  console.error("⚠️ VERCEL ENVIRONMENT VARIABLES ARE MISSING OR NOT PROPAGATED YET!");
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 let razorpay = null;
 if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
@@ -26,7 +41,7 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
 
 app.use(cors());
 app.use(express.json());
-// app.use(express.static('.'));
+app.use(express.static('.'));
 
 // ===== HELPER =====
 async function getUser(req) {
@@ -426,13 +441,3 @@ if (process.env.NODE_ENV !== 'production') {
 
 // CRITICAL: Export the app module so Vercel can map your /api routes serverlessly!
 module.exports = app;
-
-// Safely extract credentials
-const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'placeholder';
-
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  console.error("⚠️ VERCEL ENVIRONMENT VARIABLES ARE MISSING OR NOT PROPAGATED YET!");
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
