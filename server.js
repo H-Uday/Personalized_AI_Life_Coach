@@ -2,10 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
+
+// Load .env only on local machine
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
+// ===== DEBUG ENV =====
 console.log('ENV CHECK:');
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Found' : '❌ Missing');
 console.log('SUPABASE_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ Found' : '❌ Missing');
@@ -21,14 +24,9 @@ const supabase = createClient(
   process.env.SUPABASE_URL || '',
   process.env.SUPABASE_ANON_KEY || ''
 );
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_ANON_KEY || ''
-);
 console.log('✅ Supabase client created');
 
-// ===== RAZORPAY (OPTIONAL) =====
+// ===== RAZORPAY =====
 let razorpay = null;
 try {
   if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
@@ -42,7 +40,7 @@ try {
     console.log('💳 Razorpay: ⏳ Keys not added yet');
   }
 } catch(e) {
-  console.log('💳 Razorpay: ⚠️ Module error:', e.message);
+  console.log('💳 Razorpay error:', e.message);
 }
 
 // ===== MIDDLEWARE =====
@@ -50,7 +48,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// ===== SERVE HTML PAGES =====
+// ===== HTML PAGES =====
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
@@ -141,46 +139,25 @@ app.get('/api/chat-limit', async (req, res) => {
   try {
     const user = await getUser(req);
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('plan, trial_ends_at')
-      .eq('id', user.id)
-      .single();
-
+      .from('profiles').select('plan, trial_ends_at').eq('id', user.id).single();
     const plan = profile?.plan || 'trial';
-
     if (plan === 'pro') {
       return res.json({ allowed: true, plan: 'pro', chatsUsed: 0, chatsLimit: 999, unlimited: true });
     }
-
     if (plan === 'trial' && profile?.trial_ends_at) {
       const trialEnd = new Date(profile.trial_ends_at);
       if (trialEnd < new Date()) {
         return res.json({ allowed: false, plan: 'expired', reason: 'trial_expired', message: 'Your free trial has ended. Upgrade to Pro!' });
       }
     }
-
     const today = new Date().toISOString().split('T')[0];
     const { data: usage } = await supabase
-      .from('chat_usage')
-      .select('count')
-      .eq('user_id', user.id)
-      .eq('date', today)
-      .single();
-
+      .from('chat_usage').select('count').eq('user_id', user.id).eq('date', today).single();
     const chatsUsed = usage?.count || 0;
     const chatsLimit = 20;
     const allowed = chatsUsed < chatsLimit;
-
-    res.json({
-      allowed, plan, chatsUsed, chatsLimit,
-      chatsLeft: Math.max(0, chatsLimit - chatsUsed),
-      unlimited: false,
-      message: allowed ? null : 'Daily limit reached! Upgrade to Pro for unlimited chats.'
-    });
-  } catch(e) {
-    console.error('Chat limit error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
+    res.json({ allowed, plan, chatsUsed, chatsLimit, chatsLeft: Math.max(0, chatsLimit - chatsUsed), unlimited: false, message: allowed ? null : 'Daily limit reached! Upgrade to Pro for unlimited chats.' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== CHAT INCREMENT =====
@@ -189,21 +166,14 @@ app.post('/api/chat-increment', async (req, res) => {
     const user = await getUser(req);
     const today = new Date().toISOString().split('T')[0];
     const { data: existing } = await supabase
-      .from('chat_usage').select('id, count')
-      .eq('user_id', user.id).eq('date', today).single();
-
+      .from('chat_usage').select('id, count').eq('user_id', user.id).eq('date', today).single();
     if (existing) {
-      await supabase.from('chat_usage')
-        .update({ count: existing.count + 1 }).eq('id', existing.id);
+      await supabase.from('chat_usage').update({ count: existing.count + 1 }).eq('id', existing.id);
     } else {
-      await supabase.from('chat_usage')
-        .insert([{ user_id: user.id, date: today, count: 1 }]);
+      await supabase.from('chat_usage').insert([{ user_id: user.id, date: today, count: 1 }]);
     }
     res.json({ success: true });
-  } catch(e) {
-    console.error('Chat increment error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== HABITS =====
@@ -363,18 +333,13 @@ app.post('/api/chat', async (req, res) => {
     }
     const data = await response.json();
     res.json(data);
-  } catch(e) {
-    console.error('Chat error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== PAYMENT CREATE ORDER =====
 app.post('/api/payment/create-order', async (req, res) => {
   try {
-    if (!razorpay) {
-      return res.status(503).json({ error: 'Payment system not configured yet. Coming soon!' });
-    }
+    if (!razorpay) return res.status(503).json({ error: 'Payment system not configured yet. Coming soon!' });
     const user = await getUser(req);
     const { plan } = req.body;
     const amount = plan === 'yearly' ? 249900 : 29900;
@@ -390,20 +355,15 @@ app.post('/api/payment/create-order', async (req, res) => {
 // ===== PAYMENT VERIFY =====
 app.post('/api/payment/verify', async (req, res) => {
   try {
-    if (!razorpay) {
-      return res.status(503).json({ error: 'Payment system not configured yet.' });
-    }
+    if (!razorpay) return res.status(503).json({ error: 'Payment system not configured yet.' });
     const user = await getUser(req);
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
     const body = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSignature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(body.toString()).digest('hex');
-    if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({ error: 'Payment verification failed' });
-    }
+    if (expectedSignature !== razorpay_signature) return res.status(400).json({ error: 'Payment verification failed' });
     const { error } = await supabase.from('profiles')
-      .update({ plan: 'pro', razorpay_payment_id })
-      .eq('id', user.id);
+      .update({ plan: 'pro', razorpay_payment_id }).eq('id', user.id);
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true, message: '🎉 Pro plan activated!', plan: 'pro' });
   } catch(e) { res.status(500).json({ error: e.message }); }
