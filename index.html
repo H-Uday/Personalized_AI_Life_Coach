@@ -98,26 +98,42 @@ section { padding:100px 24px; }
 .footer-links a:hover { color:#fff; }
 .footer-copy { color:rgba(255,255,255,0.25); font-size:13px; }
 
-/* ====== FIX: FORCE DARK TEXT INSIDE LIGHT AUTHENTICATION CONTAINERS ====== */
-.login-container, 
-.auth-container, 
-.login-card,
-form,
+/* ====== NEW ULTIMATE REINFORCED TEXT OVERRIDE ====== */
+/* This targets the right column where your inputs live and forces EVERYTHING inside it to be dark */
+form, 
+form *, 
 [class*="login"], 
-[class*="auth"] {
+[class*="login"] *, 
+[class*="auth"], 
+[class*="auth"] * {
   color: #111116 !important;
 }
 
-/* Fix target text elements specifically inside the light wrapper panels */
-.login-container h1, .login-container h2, .login-container p, .login-container label,
-.auth-container h1, .auth-container h2, .auth-container p, .auth-container label,
-form h1, form h2, form p, form label {
-  color: #111116 !important;
+/* Make sure input placeholder hints ("Enter your email...") also turn dark grey instead of blending in */
+form input::placeholder,
+[class*="login"] input::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
 }
 
-/* Ensure sub-hints or "Did you know?" text segments stay visibly dark within light boxes */
-.login-container .hint, form .hint, p[class*="hint"] {
-  color: #4b5563 !important;
+/* Ensure form fields themselves have dark typed text and correct borders */
+form input, 
+[class*="login"] input {
+  color: #111116 !important;
+  border: 1px solid #d1d5db !important;
+  background-color: #ffffff !important;
+}
+
+/* Keep submission buttons vibrant while forcing the standard text to remain dark */
+form button, 
+form a.btn-signup,
+.btn-login,
+[class*="btn"] {
+  color: #ffffff !important; 
+}
+/* Ensure the light text inside the light-purple "Did you know?" hint section stands out cleanly */
+[class*="likely"], .hint, span[style*="color"] {
+  color: #4f46e5 !important;
 }
 
 @media(max-width:768px){ .nav-links{display:none;} .steps-container{flex-direction:column;align-items:center;} .step-arrow{transform:rotate(90deg);} .pricing-card.featured{transform:scale(1);} }
