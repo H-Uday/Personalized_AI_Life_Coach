@@ -46,7 +46,7 @@ try {
 // ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
-const mime = require('mime-types');
+// const mime = require('mime-types');
 
 app.use(express.static(__dirname, {
   setHeaders: function(res, filePath) {
