@@ -491,7 +491,7 @@
     loadGoals(),
     loadJournal(),
     loadCheckins(),
-    loadStreak()  // ← Add this line
+    loadStreak()
   ]);
   updateHomeStats();
   generateHomeInsight();
@@ -890,9 +890,33 @@ async function loadStreak() {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> Save & Get AI Response';
   }
+  // ===== STREAK =====
+async function loadStreak() {
+  try {
+    const res = await fetch('/api/streak', { headers: authHeader() });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('streakCount').textContent = data.streak;
+    }
+  } catch(e) {
+    console.error('Streak error:', e);
+  }
+}
 
   // ===== HOME STATS =====
   function updateHomeStats() {
+    // ===== STREAK =====
+async function loadStreak() {
+  try {
+    const res = await fetch('/api/streak', { headers: authHeader() });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('streakCount').textContent = data.streak;
+    }
+  } catch(e) {
+    console.error('Streak load error:', e);
+  }
+}
     // Avg mood
     if (userCheckins.length > 0) {
       const avg = (userCheckins.reduce((a,b) => a + b.mood, 0) / userCheckins.length).toFixed(1);

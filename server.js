@@ -3,30 +3,25 @@ const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
 
-// Load .env only on local machine
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
-// ===== DEBUG ENV =====
 console.log('ENV CHECK:');
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Found' : '❌ Missing');
 console.log('SUPABASE_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ Found' : '❌ Missing');
 console.log('GROQ_KEY:', process.env.GROQ_API_KEY ? '✅ Found' : '❌ Missing');
 
 const { createClient } = require('@supabase/supabase-js');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ===== SUPABASE =====
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
   process.env.SUPABASE_ANON_KEY || ''
 );
 console.log('✅ Supabase client created');
 
-// ===== RAZORPAY =====
 let razorpay = null;
 try {
   if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
@@ -43,21 +38,20 @@ try {
   console.log('💳 Razorpay error:', e.message);
 }
 
-// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
-// const mime = require('mime-types');
-
 app.use(express.static(__dirname, {
   setHeaders: function(res, filePath) {
-    if (filePath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css');
-    }
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    }
+    if (filePath.endsWith('.css')) res.setHeader('Content-Type', 'text/css');
+    if (filePath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript');
   }
 }));
+
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
+app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/payment.html', (req, res) => res.sendFile(path.join(__dirname, 'payment.html')));
 
 app.get('/css/:file', (req, res) => {
   res.setHeader('Content-Type', 'text/css');
@@ -69,14 +63,6 @@ app.get('/js/:file', (req, res) => {
   res.sendFile(path.join(__dirname, 'js', req.params.file));
 });
 
-// ===== HTML PAGES =====
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
-app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
-app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
-app.get('/payment.html', (req, res) => res.sendFile(path.join(__dirname, 'payment.html')));
-
-// ===== HELPER =====
 async function getUser(req) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) throw new Error('No token');
@@ -140,9 +126,22 @@ app.get('/api/profile', async (req, res) => {
 });
 
 // ===== TRIAL STATUS =====
-app.get('/api/trial-status', async (req, res) =>
-   {
-    // ===== GET STREAK =====
+app.get('/api/trial-status', async (req, res) => {
+  try {
+    const user = await getUser(req);
+    const { data: profile } = await supabase
+      .from('profiles').select('*').eq('id', user.id).single();
+    if (!profile) return res.json({ plan: 'trial', trialActive: true, daysLeft: 7 });
+    const plan = profile.plan || 'trial';
+    if (plan === 'pro') return res.json({ plan: 'pro', trialActive: true, daysLeft: 999 });
+    const trialEnd = new Date(profile.trial_ends_at);
+    const now = new Date();
+    const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+    res.json({ plan, trialActive: daysLeft > 0, daysLeft: Math.max(0, daysLeft) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== STREAK =====
 app.get('/api/streak', async (req, res) => {
   try {
     const user = await getUser(req);
@@ -157,11 +156,9 @@ app.get('/api/streak', async (req, res) => {
     const lastDate = profile?.last_checkin_date;
     let currentStreak = profile?.streak || 0;
 
-    // If last checkin was not today or yesterday — streak broken
     if (lastDate && lastDate !== today && lastDate !== yesterday) {
       currentStreak = 0;
-      await supabase.from('profiles')
-        .update({ streak: 0 }).eq('id', user.id);
+      await supabase.from('profiles').update({ streak: 0 }).eq('id', user.id);
     }
 
     res.json({
@@ -173,19 +170,6 @@ app.get('/api/streak', async (req, res) => {
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
-});
-  try {
-    const user = await getUser(req);
-    const { data: profile } = await supabase
-      .from('profiles').select('*').eq('id', user.id).single();
-    if (!profile) return res.json({ plan: 'trial', trialActive: true, daysLeft: 7 });
-    const plan = profile.plan || 'trial';
-    if (plan === 'pro') return res.json({ plan: 'pro', trialActive: true, daysLeft: 999 });
-    const trialEnd = new Date(profile.trial_ends_at);
-    const now = new Date();
-    const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
-    res.json({ plan, trialActive: daysLeft > 0, daysLeft: Math.max(0, daysLeft) });
-  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== CHAT LIMIT =====
@@ -331,32 +315,23 @@ app.post('/api/checkin', async (req, res) => {
     try {
       const { data: profile } = await supabase
         .from('profiles').select('streak, last_checkin_date').eq('id', user.id).single();
-
       const today = new Date().toISOString().split('T')[0];
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
       const lastDate = profile?.last_checkin_date;
       let newStreak = 1;
-
       if (lastDate === today) {
-        // Already checked in today — keep streak same
         newStreak = profile?.streak || 1;
       } else if (lastDate === yesterday) {
-        // Checked in yesterday — continue streak
         newStreak = (profile?.streak || 0) + 1;
       } else {
-        // Missed a day — reset streak to 1
         newStreak = 1;
       }
-
       await supabase.from('profiles')
-        .update({ streak: newStreak, last_checkin_date: today })
-        .eq('id', user.id);
-
+        .update({ streak: newStreak, last_checkin_date: today }).eq('id', user.id);
       res.json({ success: true, checkin: data[0], ai_response, streak: newStreak });
     } catch(e) {
       res.json({ success: true, checkin: data[0], ai_response, streak: 1 });
     }
-
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -454,7 +429,7 @@ app.post('/api/payment/verify', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ===== START SERVER =====
+// ===== START =====
 app.listen(PORT, () => {
   console.log('');
   console.log('🧠 LifeCoach AI Server Started!');
