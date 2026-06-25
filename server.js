@@ -151,7 +151,7 @@ app.get('/api/streak', async (req, res) => {
       .eq('id', user.id)
       .single();
 
-    const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
+    const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     const lastDate = profile?.last_checkin_date;
     let currentStreak = profile?.streak || 0;
@@ -188,7 +188,7 @@ app.get('/api/chat-limit', async (req, res) => {
         return res.json({ allowed: false, plan: 'expired', reason: 'trial_expired', message: 'Your free trial has ended. Upgrade to Pro!' });
       }
     }
-    const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
+    const today = new Date().toISOString().split('T')[0];
     const { data: usage } = await supabase
       .from('chat_usage').select('count').eq('user_id', user.id).eq('date', today).single();
     const chatsUsed = usage?.count || 0;
@@ -202,7 +202,7 @@ app.get('/api/chat-limit', async (req, res) => {
 app.post('/api/chat-increment', async (req, res) => {
   try {
     const user = await getUser(req);
-    const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
+    const today = new Date().toISOString().split('T')[0];
     const { data: existing } = await supabase
       .from('chat_usage').select('id, count').eq('user_id', user.id).eq('date', today).single();
     if (existing) {
@@ -292,38 +292,60 @@ app.put('/api/goals/:id', async (req, res) => {
 });
 
 // ===== CHECKIN =====
-// ===== UPDATE STREAK =====
-try {
-  const { data: profile } = await supabase
-    .from('profiles').select('streak, last_checkin_date').eq('id', user.id).single();
+// ===== CHECKIN =====
+app.post('/api/checkin', async (req, res) => {
+  try {
+    const user = await getUser(req);
+    const { mood, thoughts, focus } = req.body;
+    let ai_response = 'Thank you for checking in! Keep going! 💪';
+    try {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
+        body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: `You are a warm AI life coach. User mood: ${mood}/7. They said: "${thoughts}". Focus: "${focus}". Give personalized encouragement in 3 sentences with one tip.` }], max_tokens: 200 })
+      });
+      const groqData = await groqRes.json();
+      ai_response = groqData.choices?.[0]?.message?.content || ai_response;
+    } catch(e) { console.error('Groq error:', e.message); }
 
-  const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
-  const yesterday = new Date(Date.now() - 86400000).toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
-  const lastDate = profile?.last_checkin_date;
-  let newStreak = profile?.streak || 0;
+    const { data, error } = await supabase.from('checkins')
+      .insert([{ user_id: user.id, mood, thoughts, focus, ai_response }]).select();
+    if (error) return res.status(400).json({ error: error.message });
 
-  if (lastDate === today) {
-    // Already checked in today — DO NOT change streak at all!
-    // Just return current streak as is
-    newStreak = profile?.streak || 1;
-  } else if (lastDate === yesterday) {
-    // Checked in yesterday — increment streak by 1
-    newStreak = (profile?.streak || 0) + 1;
-    await supabase.from('profiles')
-      .update({ streak: newStreak, last_checkin_date: today })
-      .eq('id', user.id);
-  } else {
-    // First checkin or missed days — reset to 1
-    newStreak = 1;
-    await supabase.from('profiles')
-      .update({ streak: newStreak, last_checkin_date: today })
-      .eq('id', user.id);
-  }
+    // ===== UPDATE STREAK — ONCE PER DAY ONLY =====
+    try {
+      const { data: profile } = await supabase
+        .from('profiles').select('streak, last_checkin_date').eq('id', user.id).single();
 
-  res.json({ success: true, checkin: data[0], ai_response, streak: newStreak });
-} catch(e) {
-  res.json({ success: true, checkin: data[0], ai_response, streak: 1 });
-}
+      const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
+      const yesterday = new Date(Date.now() - 86400000).toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
+      const lastDate = profile?.last_checkin_date;
+      let newStreak = profile?.streak || 0;
+
+      if (lastDate === today) {
+        // Already checked in today — keep streak same, no update
+        newStreak = profile?.streak || 1;
+      } else if (lastDate === yesterday) {
+        // Checked in yesterday — increment streak
+        newStreak = (profile?.streak || 0) + 1;
+        await supabase.from('profiles')
+          .update({ streak: newStreak, last_checkin_date: today })
+          .eq('id', user.id);
+      } else {
+        // First time or missed days — reset to 1
+        newStreak = 1;
+        await supabase.from('profiles')
+          .update({ streak: newStreak, last_checkin_date: today })
+          .eq('id', user.id);
+      }
+
+      res.json({ success: true, checkin: data[0], ai_response, streak: newStreak });
+    } catch(e) {
+      res.json({ success: true, checkin: data[0], ai_response, streak: 1 });
+    }
+
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 app.get('/api/checkins', async (req, res) => {
   try {
