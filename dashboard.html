@@ -486,16 +486,29 @@
 
   // ===== LOAD ALL DATA =====
   async function loadAllData() {
-    await Promise.all([
-      loadHabits(),
-      loadGoals(),
-      loadJournal(),
-      loadCheckins()
-    ]);
-    updateHomeStats();
-    generateHomeInsight();
-    generateWeeklyReview();
+  await Promise.all([
+    loadHabits(),
+    loadGoals(),
+    loadJournal(),
+    loadCheckins(),
+    loadStreak()  // ← Add this line
+  ]);
+  updateHomeStats();
+  generateHomeInsight();
+  generateWeeklyReview();
+}
+
+async function loadStreak() {
+  try {
+    const res = await fetch('/api/streak', { headers: authHeader() });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('streakCount').textContent = data.streak;
+    }
+  } catch(e) {
+    console.error('Streak load error:', e);
   }
+}
 
   // ===== AUTH HEADER =====
   function authHeader() {

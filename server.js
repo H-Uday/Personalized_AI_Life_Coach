@@ -140,7 +140,40 @@ app.get('/api/profile', async (req, res) => {
 });
 
 // ===== TRIAL STATUS =====
-app.get('/api/trial-status', async (req, res) => {
+app.get('/api/trial-status', async (req, res) =>
+   {
+    // ===== GET STREAK =====
+app.get('/api/streak', async (req, res) => {
+  try {
+    const user = await getUser(req);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('streak, last_checkin_date')
+      .eq('id', user.id)
+      .single();
+
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const lastDate = profile?.last_checkin_date;
+    let currentStreak = profile?.streak || 0;
+
+    // If last checkin was not today or yesterday — streak broken
+    if (lastDate && lastDate !== today && lastDate !== yesterday) {
+      currentStreak = 0;
+      await supabase.from('profiles')
+        .update({ streak: 0 }).eq('id', user.id);
+    }
+
+    res.json({
+      success: true,
+      streak: currentStreak,
+      lastCheckinDate: lastDate,
+      checkedInToday: lastDate === today
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
   try {
     const user = await getUser(req);
     const { data: profile } = await supabase
@@ -289,10 +322,41 @@ app.post('/api/checkin', async (req, res) => {
       const groqData = await groqRes.json();
       ai_response = groqData.choices?.[0]?.message?.content || ai_response;
     } catch(e) { console.error('Groq error:', e.message); }
+
     const { data, error } = await supabase.from('checkins')
       .insert([{ user_id: user.id, mood, thoughts, focus, ai_response }]).select();
     if (error) return res.status(400).json({ error: error.message });
-    res.json({ success: true, checkin: data[0], ai_response });
+
+    // ===== UPDATE STREAK =====
+    try {
+      const { data: profile } = await supabase
+        .from('profiles').select('streak, last_checkin_date').eq('id', user.id).single();
+
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const lastDate = profile?.last_checkin_date;
+      let newStreak = 1;
+
+      if (lastDate === today) {
+        // Already checked in today — keep streak same
+        newStreak = profile?.streak || 1;
+      } else if (lastDate === yesterday) {
+        // Checked in yesterday — continue streak
+        newStreak = (profile?.streak || 0) + 1;
+      } else {
+        // Missed a day — reset streak to 1
+        newStreak = 1;
+      }
+
+      await supabase.from('profiles')
+        .update({ streak: newStreak, last_checkin_date: today })
+        .eq('id', user.id);
+
+      res.json({ success: true, checkin: data[0], ai_response, streak: newStreak });
+    } catch(e) {
+      res.json({ success: true, checkin: data[0], ai_response, streak: 1 });
+    }
+
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
