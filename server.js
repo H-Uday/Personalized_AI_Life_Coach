@@ -151,7 +151,7 @@ app.get('/api/streak', async (req, res) => {
       .eq('id', user.id)
       .single();
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     const lastDate = profile?.last_checkin_date;
     let currentStreak = profile?.streak || 0;
@@ -188,7 +188,7 @@ app.get('/api/chat-limit', async (req, res) => {
         return res.json({ allowed: false, plan: 'expired', reason: 'trial_expired', message: 'Your free trial has ended. Upgrade to Pro!' });
       }
     }
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
     const { data: usage } = await supabase
       .from('chat_usage').select('count').eq('user_id', user.id).eq('date', today).single();
     const chatsUsed = usage?.count || 0;
@@ -202,7 +202,7 @@ app.get('/api/chat-limit', async (req, res) => {
 app.post('/api/chat-increment', async (req, res) => {
   try {
     const user = await getUser(req);
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
     const { data: existing } = await supabase
       .from('chat_usage').select('id, count').eq('user_id', user.id).eq('date', today).single();
     if (existing) {
@@ -315,8 +315,8 @@ app.post('/api/checkin', async (req, res) => {
     try {
       const { data: profile } = await supabase
         .from('profiles').select('streak, last_checkin_date').eq('id', user.id).single();
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const today = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
+      const yesterday = new Date(Date.now() - 86400000).toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
       const lastDate = profile?.last_checkin_date;
       let newStreak = 1;
       if (lastDate === today) {
